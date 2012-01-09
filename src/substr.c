@@ -6,81 +6,99 @@
 #define MAX_QUERY 500
 #define MAX_STRING 50
 
-char **substr (char **str, int num);
+struct node {
+	char str[BUFFER_SIZE];
+	struct node* left;
+	struct node* right;
+};
+
+struct node* substr (char** str, int num);
+void insert (struct node** current, struct node* newNode);
+void search (struct node* current, int* ctr, int k);
 
 int main () {
-	FILE *in;
 	char buff[BUFFER_SIZE];
-	char **str;
-	char **strbuff;
+	struct node* list = NULL;
+	char** str;
 	int k[MAX_QUERY];
 	int n, q, x;
-	int len;
+	int len, maxcount;
 
-	in = fopen ("input.txt", "r");
-	if (in == NULL) {
-		perror ("Failed to open file input.txt\n");
-		return (EXIT_FAILURE);
-	}
-
-	fgets (buff, BUFFER_SIZE, in);
+	fgets (buff, BUFFER_SIZE, stdin);
 	n = atoi (buff);
-	if (n > MAX_STRING) {
-		fprintf (stderr, "Number of strings exceeds  MAX_STRING\n");
+	if (n < 1 || n > MAX_STRING) {
+		fprintf (stderr, "Number of strings should be > 0 and < MAX_STRING\n");
 		return (EXIT_FAILURE);
 	}
 
-	str = (char **) malloc (MAX_STRING * sizeof (char *));
+	str = (char**) malloc (MAX_STRING * sizeof (char*));
 	for (x = 0; x < n; x++) {
-		str[x] = (char *) malloc (MAX_STRING * sizeof (char *));
-		fgets (buff, BUFFER_SIZE, in);
+		str[x] = (char*) malloc (MAX_STRING * sizeof (char*));
+		fgets (buff, BUFFER_SIZE, stdin);
 		len = strlen (buff);
 		if (buff[len - 1] == '\n')
 			buff[len - 1] = '\0';
 		strcpy (str[x], buff);
 	}
 
-	fgets (buff, BUFFER_SIZE, in);
+	fgets (buff, BUFFER_SIZE, stdin);
 	q = atoi (buff);
-	if (q > MAX_QUERY) {
-		fprintf (stderr, "Number of queries exceeds MAX_QUERY\n");
+	if (q < 1 || q > MAX_QUERY) {
+		fprintf (stderr, "Number of queries should be > 0 and < MAX_QUERY\n");
 		return (EXIT_FAILURE);
 	}
 
 	for (x = 0; x < q; x++) {
-		fgets (buff, BUFFER_SIZE, in);
+		fgets (buff, BUFFER_SIZE, stdin);
 		k[x] = atoi (buff);
+
+		if (k[x] < 1 || k[x] > 1000000000) {
+			fprintf (stderr, "Query should be > 0 and < 1000000000\n");
+		}
 	}
 
-	strbuff = substr (str, n);
+	maxcount = 0;
+	for (x = 0; x < n; x++) {
+		len = strlen (str[x]);
+		maxcount += (len * (len + 1)) / 2;
+	}
 
-	fclose (in);
+	list = substr (str, n);
+
+	for (x = 0; x < q; x++) {
+		len = 0;
+		search (list, &len, k[x]);
+		
+		if (len < k[x])
+			printf ("INVALID\n");
+	}
+
 	return (EXIT_SUCCESS);
 }
 
-char **substr (char **str, int num) {
+// Create all the possible substrings from the input
+struct node* substr (char** str, int num) {
+	struct node* head = NULL;
+	struct node* newNode = NULL;
 	int start, end;
-	int len, maxlen;
-	char **buff;
-	int x, y;
+	int len;
+	int x;
 
-	maxlen = 0;
 	start = 0;
 	end = 1;
-	y = 0;
+	x = 0;
+	len = strlen (str[x]);
 
-	for (x = 0; x < num; x++) {
-		len = strlen (str[x]);
-		maxlen += (len * (len + 1)) / 2;
-	}
+	// get the string pointed to from start to end
+	// increment end by 1
+	// increment start by 1 when the end pointer has reached the end of string
+	while (1) {
+		newNode = (struct node*) malloc (sizeof (struct node));
+		strncpy (newNode->str, str[x] + start, end);
+		newNode->left = NULL;
+		newNode->right = NULL;
 
-	buff = (char **) malloc (maxlen * sizeof (char *));
-	for (x = 0; x < maxlen; x++) {
-		buff[x] = (char *) malloc (MAX_STRING * sizeof (char *));
-		len = strlen (str[y]);
-
-		memset (buff[x], 0, MAX_STRING);
-		strncpy (buff[x], str[y] + start, end);
+		insert (&head, newNode);
 		end++;
 
 		if (end + start > len) {
@@ -91,9 +109,40 @@ char **substr (char **str, int num) {
 		if (start == len) {
 			start = 0;
 			end = 1;
-			y++;
+			x++;
+			if (x == num)
+				break;
+			len = strlen (str[x]);
 		}
 	}
 
-	return (buff);
+	return (head);
+}
+
+// Insert into the tree in alphabetical order
+void insert (struct node** current, struct node* newNode) {
+	if (*current == NULL)
+		(*current) = newNode;
+	else if (strcmp (newNode->str, (*current)->str) == 0)
+		free (newNode);
+	else if (strcmp (newNode->str, (*current)->str) < 0)
+		insert (&((*current)->left), newNode);
+	else if (strcmp (newNode->str, (*current)->str) > 0)
+		insert (&((*current)->right), newNode);
+}
+
+void search (struct node* current, int* ctr, int k) {
+	if (current == NULL)
+		return;
+
+	if ((*ctr) < k) {
+		search (current->left, ctr, k);
+		(*ctr)++;
+		if ((*ctr) == k) {
+			printf ("%s\n", current->str);
+			return;
+		}
+		if ((*ctr) <= k)
+			search (current->right, ctr, k);
+	}
 }
