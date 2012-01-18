@@ -1,3 +1,8 @@
+/*
+ * Simple palindrome program
+ * 	ignores characters other than letters and numbers
+ */
+
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>

@@ -1,3 +1,8 @@
+/*
+ * Simple fibonacci program
+ * 	output up to nth sequence
+ */
+
 #include <stdio.h>
 
 void fibonacci(const int num);

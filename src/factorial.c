@@ -1,3 +1,7 @@
+/*
+ * Simple factorial program
+ */
+
 #include <stdio.h>
 
 int factorial(int num);

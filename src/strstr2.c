@@ -1,3 +1,7 @@
+/*
+ * Own implementation of strstr
+ */
+
 #include <stdio.h>
 #include <string.h>
 

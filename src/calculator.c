@@ -1,3 +1,7 @@
+/*
+ * Simple calculator program
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 
