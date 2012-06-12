@@ -1,11 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <pthread.h>
 #include <time.h>
 
 #define BUFFER_SIZE 2000
 #define MAX_QUERY 500
 #define MAX_STRING 50
+#define MAX_THREADS 2
 
 struct node {
 	char str[BUFFER_SIZE];
@@ -13,19 +15,26 @@ struct node {
 	struct node *right;
 };
 
-struct node *substr(char **str, int num);
+struct thread_data {
+	struct node *list;
+	char *str;
+};
+
+void *substr(void *argv);
 int insert(struct node **head, struct node *newNode);
 void search(struct node *current, unsigned long long *ctr, unsigned long long k);
 void clear(struct node *head);
 
 int main()
 {
+	pthread_t threads[MAX_THREADS];
+	struct thread_data data[MAX_THREADS];
 	char buff[BUFFER_SIZE];
 	struct node *list = NULL;
 	char **str;
 	unsigned long long k[MAX_QUERY];
 	unsigned long long len;
-	int n, q, x;
+	int n, q, x, y;
 
 	fgets(buff, BUFFER_SIZE, stdin);
 	n = atoi(buff);
@@ -67,7 +76,19 @@ int main()
 			fprintf(stderr, "Query should be > 0 and < 1000000000\n");
 	}
 
-	list = substr(str, n);
+	y = 0;
+	for (x = 0; x < n; x++) {
+		data[y].str = str[x];
+		data[y].list = NULL;
+		if (y + 1 < MAX_THREADS)
+			pthread_create(&threads[y], NULL, substr, (void *)&(data[y]));
+		else
+			substr((void *)&(data[y]));
+		y++;
+	}
+
+	for (x = 0; x < MAX_THREADS; x++)
+		pthread_join(threads[x], NULL);
 
 	for (x = 0; x < q; x++) {
 		len = 0;
@@ -88,45 +109,43 @@ int main()
 }
 
 // Create all the possible substrings from the input
-struct node *substr(char **str, int num)
+void *substr(void *argv)
 {
-	struct node *head = NULL;
+	struct thread_data *arg;
+	struct node **head = NULL;
 	struct node *newNode;
 	int start, end;
 	int len;
-	int x;
 	clock_t st, ed;
 	double t;
 
-	// get the string pointed to from start to end
-	// increment end by 1
-	// increment start by 1 when the end pointer has reached the end of string
-	st = clock();
-	for (x = 0; x < num; x++) {
-		len = strlen(str[x]);
-		for (start = 0; start < len; start++) {
-			for (end = start + 1; end <= len; end++) {
-				newNode = (struct node *) malloc(sizeof (struct node));
-				if (newNode == NULL) {
-					fprintf(stderr, "No memory allocated for newNode\n");
-					exit (1);
-				}
-				strncpy(newNode->str, str[x] + start, end);
-				newNode->str[end - start] = '\0';
-				newNode->left = NULL;
-				newNode->right = NULL;
+	arg = (struct thread_data *)argv;
+	head = &(arg->list);
+	len = strlen(arg->str);
 
-				if (insert(&head, newNode) == 1)
-					free(newNode);
+	st = clock();
+	for (start = 0; start < len; start++) {
+		for (end = start + 1; end <= len; end++) {
+			newNode = (struct node *)malloc(sizeof (struct node));
+			if (newNode == NULL) {
+				fprintf(stderr, "No memory allocated for newNode\n");
+				exit (1);
 			}
+			strncpy(newNode->str, arg->str + start, end);
+			newNode->str[end - start] = '\0';
+			newNode->left = NULL;
+			newNode->right = NULL;
+
+			if (insert(head, newNode) == 1)
+				free(newNode);
 		}
 	}
 	ed = clock();
 	t = (double)(ed - st) / CLOCKS_PER_SEC;
 	
 	printf("It took %lf seconds.\n", t);
-
-	return(head);
+	
+	pthread_exit(NULL);
 }
 
 // non-recursive insert into the binary tree
